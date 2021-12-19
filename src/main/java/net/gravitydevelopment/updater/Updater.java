@@ -6,16 +6,17 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Enumeration;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.JSONValue;
 
 /**
  * Check for updates on BukkitDev for a given plugin, and download the updates if needed.
@@ -670,20 +671,19 @@ public class Updater {
 
             final BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
             final String response = reader.readLine();
+            final Gson gson = new Gson();
+            final List<?> list = gson.fromJson(response, List.class);
 
-            final JSONArray array = (JSONArray) JSONValue.parse(response);
-
-            if (array.isEmpty()) {
+            if (list.isEmpty()) {
                 this.plugin.getLogger().warning("The updater could not find any files for the project id " + this.id);
                 this.result = UpdateResult.FAIL_BADID;
                 return false;
             }
-
-            JSONObject latestUpdate = (JSONObject) array.get(array.size() - 1);
-            this.versionName = (String) latestUpdate.get(Updater.TITLE_VALUE);
-            this.versionLink = (String) latestUpdate.get(Updater.LINK_VALUE);
-            this.versionType = (String) latestUpdate.get(Updater.TYPE_VALUE);
-            this.versionGameVersion = (String) latestUpdate.get(Updater.VERSION_VALUE);
+            Map<String, ?> update = gson.fromJson((JsonElement) list.get(list.size() - 1), Map.class);
+            this.versionName = (String) update.get(Updater.TITLE_VALUE);
+            this.versionLink = (String) update.get(Updater.LINK_VALUE);
+            this.versionType = (String) update.get(Updater.TYPE_VALUE);
+            this.versionGameVersion = (String) update.get(Updater.VERSION_VALUE);
 
             return true;
         } catch (final IOException e) {
